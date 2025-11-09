@@ -1,70 +1,70 @@
-# Демонстрация производительности инструкций SIMD
+# SIMD Performance Demonstration
 
-## Номер студента: 58
-
----
-
-### Итоговая инструкция: `_mm_div_pd`
-
-**Расчет:**
-- Префикс: 58 % 2 = 0  → `_mm`
-- Суффикс: 58 % 4 = 2  → `_pd`
-- Ядро: 58 / 8 = 7     → `_div`
-- **Результат: `_mm_div_pd`**
+## Student Number: 58
 
 ---
 
-### Что делает программа
+### Target Instruction: `_mm_div_pd`
 
-Программа демонстрирует преимущество SIMD-инструкции `_mm_div_pd` над обычными скалярными вычислениями.
-
-**Принцип работы:**
-- `_mm_div_pd` обрабатывает **2 значения double одновременно** (128 бит)
-- Для демонстрации реального ускорения используется метод интенсивных вычислений:
-  - 10 итераций обработки массива
-  - 3 операции деления в каждой итерации
-  - Усреднение по 3 измерениям
-
-**Ожидаемый результат:** Ускорение в **1.5-2.0 раза** по сравнению со скалярной версией.
+**Calculation:**
+- Prefix: 58 % 2 = 0  → `_mm`
+- Suffix: 58 % 4 = 2  → `_pd`
+- Core: 58 / 8 = 7    → `_div`
+- **Result: `_mm_div_pd`**
 
 ---
 
-### Как запустить
+### What the Program Does
 
-#### Вариант 1: Через Makefile (рекомендуется)
+This program demonstrates the performance advantage of the SIMD instruction `_mm_div_pd` over regular scalar computations.
+
+**How it works:**
+- `_mm_div_pd` processes **2 double values simultaneously** (128 bits)
+- To demonstrate real speedup, an intensive computation method is used:
+  - 10 iterations of array processing
+  - 3 division operations in each iteration
+  - Averaging across 3 measurements
+
+**Expected result:** Speedup of **1.5-2.0x** compared to the scalar version.
+
+---
+
+### How to Run
+
+#### Option 1: Using Makefile (recommended)
 
 ```bash
-# Запуск с отключенной автовекторизацией (показывает реальную разницу)
+# Run with disabled auto-vectorization (shows real difference)
 make run_no_vec
 
-# Очистка
+# Clean up
 make clean
 ```
 
-#### Вариант 2: Ручная компиляция
+#### Option 2: Manual compilation
 
 ```bash
-# Компиляция
+# Compile
 g++ -std=c++17 -O3 -msse2 -fno-tree-vectorize main.cpp -o homework_58
 
-# Запуск
+# Run
 ./homework_58
 ```
 
 ---
 
-### Структура проекта
+### Project Structure
 
 ```
 .
-├── main.cpp        # Основной код программы
-├── Makefile        # Автоматическая сборка
-└── README.md       # Документация
+├── main.cpp        # Main program code
+├── Makefile        # Automated build
+└── README.md       # Documentation
 ```
 
 ---
 
-### Требования
+### Requirements
 
-- Компилятор: GCC 7.0+ или Clang 6.0+
-- Процессор с поддержкой SSE2 (все современные x86-64 процессоры)
+- Compiler: GCC 7.0+ or Clang 6.0+
+- Processor with SSE2 support (all modern x86-64 processors)
