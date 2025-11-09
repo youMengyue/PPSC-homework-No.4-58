@@ -2,87 +2,87 @@
 
 /**
  * @file main.cpp
- * @brief Улучшенная демонстрация преимущества инструкции SIMD _mm_div_pd
- * @author Студент № 58
+ * @brief Enhanced demonstration of SIMD instruction _mm_div_pd performance advantage
+ * @author Student #58
  * 
- * --- Описание задания ---
- * Номер студента: 58
- * Вывод инструкции:
- * 1. Префикс: 58 % 2 = 0  => _mm
- * 2. Суффикс: 58 % 4 = 2  => _pd
- * 3. Ядро: 58 / 8 = 7     => _div
- * Итоговая инструкция: _mm_div_pd
+ * --- Assignment Description ---
+ * Student number: 58
+ * Instruction derivation:
+ * 1. Prefix: 58 % 2 = 0  => _mm
+ * 2. Suffix: 58 % 4 = 2  => _pd
+ * 3. Core: 58 / 8 = 7    => _div
+ * Target instruction: _mm_div_pd
  * 
- * --- Улучшения по сравнению с базовой версией ---
- * ПРОБЛЕМА: При простом однократном делении массивов разница в производительности 
- * между скалярной и SIMD-версией оказывается небольшой. Это происходит потому, что:
- * 1. Операция деления сама по себе очень медленная (13-16 тактов процессора)
- * 2. При больших массивах основное время уходит на чтение/запись памяти, а не на вычисления
+ * --- Improvements over basic version ---
+ * PROBLEM: With simple single-pass array division, the performance difference 
+ * between scalar and SIMD versions is small. This occurs because:
+ * 1. Division operation itself is very slow (13-16 CPU cycles)
+ * 2. For large arrays, most time is spent on memory read/write, not computation
  * 
- * РЕШЕНИЕ: Увеличить вычислительную интенсивность через многократные итерации.
- * Вместо одного прохода по массиву мы делаем несколько проходов с множественными 
- * операциями деления. Это позволяет показать реальное преимущество SIMD-инструкций,
- * так как время вычислений начинает доминировать над временем работы с памятью.
+ * SOLUTION: Increase computational intensity through multiple iterations.
+ * Instead of one pass through the array, we perform several passes with multiple 
+ * division operations. This allows us to demonstrate the real advantage of SIMD 
+ * instructions, as computation time begins to dominate over memory access time.
  */
 
 #include <iostream>
 #include <vector>
 #include <chrono>
-#include <immintrin.h> // Заголовочный файл для инструкций SIMD
+#include <immintrin.h> // Header file for SIMD instructions
 #include <random>
 #include <iomanip>
 
 // ============================================================================
-// Скалярная версия с повышенной вычислительной интенсивностью
+// Scalar version with increased computational intensity
 // ============================================================================
 void scalar_division_intensive(const std::vector<double>& a, 
                                 const std::vector<double>& b, 
                                 std::vector<double>& result,
                                 int iterations) {
-    // Выполняем несколько итераций вычислений для увеличения нагрузки
+    // Perform multiple iterations of computation to increase workload
     for (int iter = 0; iter < iterations; ++iter) {
         for (size_t i = 0; i < a.size(); ++i) {
-            // Три последовательные операции деления
-            result[i] = a[i] / b[i];                    // Первое деление
-            result[i] = result[i] / (b[i] + 1.0);       // Второе деление
-            result[i] = result[i] / (a[i] + 2.0);       // Третье деление
+            // Three sequential division operations
+            result[i] = a[i] / b[i];                    // First division
+            result[i] = result[i] / (b[i] + 1.0);       // Second division
+            result[i] = result[i] / (a[i] + 2.0);       // Third division
         }
     }
 }
 
 // ============================================================================
-// SIMD-версия с повышенной вычислительной интенсивностью
+// SIMD version with increased computational intensity
 // ============================================================================
 void simd_division_intensive(const std::vector<double>& a, 
                               const std::vector<double>& b, 
                               std::vector<double>& result,
                               int iterations) {
-    // Подготавливаем константы для SIMD-операций
-    __m128d one = _mm_set1_pd(1.0);  // Вектор из двух значений 1.0
-    __m128d two = _mm_set1_pd(2.0);  // Вектор из двух значений 2.0
+    // Prepare constants for SIMD operations
+    __m128d one = _mm_set1_pd(1.0);  // Vector of two 1.0 values
+    __m128d two = _mm_set1_pd(2.0);  // Vector of two 2.0 values
     
-    // Выполняем несколько итераций вычислений
+    // Perform multiple iterations of computation
     for (int iter = 0; iter < iterations; ++iter) {
-        // Обрабатываем по 2 double за раз (128 бит)
+        // Process 2 doubles at a time (128 bits)
         for (size_t i = 0; i < a.size(); i += 2) {
-            // Загружаем данные в SIMD-регистры
+            // Load data into SIMD registers
             __m128d a_vec = _mm_loadu_pd(&a[i]);
             __m128d b_vec = _mm_loadu_pd(&b[i]);
             __m128d result_vec = _mm_loadu_pd(&result[i]);
             
-            // Выполняем три последовательные операции деления параллельно над двумя элементами
-            result_vec = _mm_div_pd(a_vec, b_vec);                      // Первое деление
-            result_vec = _mm_div_pd(result_vec, _mm_add_pd(b_vec, one)); // Второе деление
-            result_vec = _mm_div_pd(result_vec, _mm_add_pd(a_vec, two)); // Третье деление
+            // Perform three sequential division operations in parallel on two elements
+            result_vec = _mm_div_pd(a_vec, b_vec);                      // First division
+            result_vec = _mm_div_pd(result_vec, _mm_add_pd(b_vec, one)); // Second division
+            result_vec = _mm_div_pd(result_vec, _mm_add_pd(a_vec, two)); // Third division
             
-            // Сохраняем результат обратно в память
+            // Store result back to memory
             _mm_storeu_pd(&result[i], result_vec);
         }
     }
 }
 
 // ============================================================================
-// Функция для многократного измерения времени выполнения (для точности)
+// Function for multiple time measurements (for accuracy)
 // ============================================================================
 template<typename Func>
 double benchmark(Func func, int rounds) {
@@ -97,34 +97,34 @@ double benchmark(Func func, int rounds) {
         total_time += elapsed.count();
     }
     
-    return total_time / rounds; // Возвращаем среднее время
+    return total_time / rounds; // Return average time
 }
 
 // ============================================================================
-// ГЛАВНАЯ ФУНКЦИЯ
+// MAIN FUNCTION
 // ============================================================================
 int main() {
     std::cout << "╔═══════════════════════════════════════════════════╗" << std::endl;
-    std::cout << "║  УЛУЧШЕННАЯ ДЕМОНСТРАЦИЯ ПРОИЗВОДИТЕЛЬНОСТИ SIMD  ║" << std::endl;
-    std::cout << "║  Студент № 58: Инструкция _mm_div_pd              ║" << std::endl;
+    std::cout << "║  ENHANCED SIMD PERFORMANCE DEMONSTRATION          ║" << std::endl;
+    std::cout << "║  Student #58: Instruction _mm_div_pd              ║" << std::endl;
     std::cout << "╚═══════════════════════════════════════════════════╝" << std::endl;
     std::cout << std::endl;
 
     // ========================================================================
-    // Конфигурация параметров теста
+    // Test configuration parameters
     // ========================================================================
-    const size_t ARRAY_SIZE = 10000000;      // 10 миллионов элементов
-    const int ITERATIONS = 10;                // Количество итераций для интенсивных вычислений
-    const int BENCHMARK_ROUNDS = 3;           // Количество повторений теста для усреднения
+    const size_t ARRAY_SIZE = 10000000;      // 10 million elements
+    const int ITERATIONS = 10;                // Number of iterations for intensive computation
+    const int BENCHMARK_ROUNDS = 3;           // Number of test repetitions for averaging
 
-    std::cout << "Параметры теста:" << std::endl;
-    std::cout << "  Размер массива:     " << ARRAY_SIZE << " элементов" << std::endl;
-    std::cout << "  Итераций расчета:   " << ITERATIONS << std::endl;
-    std::cout << "  Раундов измерений:  " << BENCHMARK_ROUNDS << std::endl;
+    std::cout << "Test parameters:" << std::endl;
+    std::cout << "  Array size:         " << ARRAY_SIZE << " elements" << std::endl;
+    std::cout << "  Computation iters:  " << ITERATIONS << std::endl;
+    std::cout << "  Measurement rounds: " << BENCHMARK_ROUNDS << std::endl;
     std::cout << std::endl;
 
     // ========================================================================
-    // Инициализация данных
+    // Data initialization
     // ========================================================================
     std::vector<double> dividends(ARRAY_SIZE);
     std::vector<double> divisors(ARRAY_SIZE);
@@ -132,67 +132,67 @@ int main() {
     std::vector<double> result_simd(ARRAY_SIZE);
 
     std::random_device rd;
-    std::mt19937 gen(42); // Фиксированное начальное значение для воспроизводимости
+    std::mt19937 gen(42); // Fixed seed for reproducibility
     std::uniform_real_distribution<> dis(1.0, 100.0);
 
-    std::cout << "Инициализация массивов..." << std::endl;
+    std::cout << "Initializing arrays..." << std::endl;
     for (size_t i = 0; i < ARRAY_SIZE; ++i) {
-        dividends[i] = dis(gen) * 5.0;  // Делимое: от 5 до 500
-        divisors[i] = dis(gen);         // Делитель: от 1 до 100
+        dividends[i] = dis(gen) * 5.0;  // Dividend: 5 to 500
+        divisors[i] = dis(gen);         // Divisor: 1 to 100
     }
-    std::cout << "Инициализация завершена!" << std::endl;
+    std::cout << "Initialization complete!" << std::endl;
     std::cout << std::endl;
 
     // ========================================================================
-    // ТЕСТИРОВАНИЕ ПРОИЗВОДИТЕЛЬНОСТИ
+    // PERFORMANCE TESTING
     // ========================================================================
     std::cout << "┌───────────────────────────────────────────────────┐" << std::endl;
-    std::cout << "│  ИНТЕНСИВНЫЕ ВЫЧИСЛЕНИЯ (многократное деление)    │" << std::endl;
+    std::cout << "│  INTENSIVE COMPUTATION (multiple divisions)       │" << std::endl;
     std::cout << "└───────────────────────────────────────────────────┘" << std::endl;
 
     std::cout << std::fixed << std::setprecision(2);
 
-    // Тестирование скалярной версии
-    std::cout << "Запуск скалярной версии..." << std::endl;
+    // Test scalar version
+    std::cout << "Running scalar version..." << std::endl;
     double scalar_time = benchmark([&]() {
         scalar_division_intensive(dividends, divisors, result_scalar, ITERATIONS);
     }, BENCHMARK_ROUNDS);
 
-    std::cout << "  ✓ Скалярная версия завершена" << std::endl;
-    std::cout << "  Среднее время: " << scalar_time << " мс" << std::endl;
+    std::cout << "  ✓ Scalar version completed" << std::endl;
+    std::cout << "  Average time: " << scalar_time << " ms" << std::endl;
     std::cout << std::endl;
 
-    // Тестирование SIMD-версии
-    std::cout << "Запуск SIMD-версии..." << std::endl;
+    // Test SIMD version
+    std::cout << "Running SIMD version..." << std::endl;
     double simd_time = benchmark([&]() {
         simd_division_intensive(dividends, divisors, result_simd, ITERATIONS);
     }, BENCHMARK_ROUNDS);
 
-    std::cout << "  ✓ SIMD-версия завершена" << std::endl;
-    std::cout << "  Среднее время: " << simd_time << " мс" << std::endl;
+    std::cout << "  ✓ SIMD version completed" << std::endl;
+    std::cout << "  Average time: " << simd_time << " ms" << std::endl;
     std::cout << std::endl;
 
     // ========================================================================
-    // РЕЗУЛЬТАТЫ
+    // RESULTS
     // ========================================================================
     std::cout << "╔═══════════════════════════════════════════════════╗" << std::endl;
-    std::cout << "║  РЕЗУЛЬТАТЫ ИЗМЕРЕНИЙ                             ║" << std::endl;
+    std::cout << "║  MEASUREMENT RESULTS                              ║" << std::endl;
     std::cout << "╠═══════════════════════════════════════════════════╣" << std::endl;
-    std::cout << "║  Скалярная версия (цикл):  " << std::setw(10) << scalar_time << " мс      ║" << std::endl;
-    std::cout << "║  SIMD версия (_mm_div_pd): " << std::setw(10) << simd_time << " мс      ║" << std::endl;
+    std::cout << "║  Scalar version (loop):    " << std::setw(10) << scalar_time << " ms      ║" << std::endl;
+    std::cout << "║  SIMD version (_mm_div_pd):" << std::setw(10) << simd_time << " ms      ║" << std::endl;
     std::cout << "║  ───────────────────────────────────────────────  ║" << std::endl;
 
     double speedup = scalar_time / simd_time;
-    std::cout << "║  Ускорение:                " << std::setw(10) << speedup << " раз     ║" << std::endl;
+    std::cout << "║  Speedup:                  " << std::setw(10) << speedup << " x       ║" << std::endl;
     std::cout << "╚═══════════════════════════════════════════════════╝" << std::endl;
     std::cout << std::endl;
 
     // ========================================================================
-    // ПРОВЕРКА КОРРЕКТНОСТИ
+    // CORRECTNESS VERIFICATION
     // ========================================================================
-    std::cout << "Проверка корректности результатов..." << std::endl;
+    std::cout << "Verifying result correctness..." << std::endl;
     
-    // Запускаем оба алгоритма еще раз для проверки
+    // Run both algorithms once more for verification
     scalar_division_intensive(dividends, divisors, result_scalar, 1);
     simd_division_intensive(dividends, divisors, result_simd, 1);
     
@@ -204,37 +204,37 @@ int main() {
         max_error = std::max(max_error, error);
         
         if (error > 1e-9) {
-            std::cerr << "✗ ОШИБКА: несовпадение результатов на индексе " << i << std::endl;
-            std::cerr << "  Скалярное значение: " << result_scalar[i] << std::endl;
-            std::cerr << "  SIMD значение:      " << result_simd[i] << std::endl;
-            std::cerr << "  Разница:            " << error << std::endl;
+            std::cerr << "✗ ERROR: Result mismatch at index " << i << std::endl;
+            std::cerr << "  Scalar value: " << result_scalar[i] << std::endl;
+            std::cerr << "  SIMD value:   " << result_simd[i] << std::endl;
+            std::cerr << "  Difference:   " << error << std::endl;
             correct = false;
             break;
         }
     }
     
     if (correct) {
-        std::cout << "✓ Проверка пройдена успешно!" << std::endl;
-        std::cout << "  Максимальная погрешность: " << std::scientific << max_error << std::fixed << std::endl;
+        std::cout << "✓ Verification passed successfully!" << std::endl;
+        std::cout << "  Maximum error: " << std::scientific << max_error << std::fixed << std::endl;
     }
     std::cout << std::endl;
 
     // ========================================================================
-    // ЗАКЛЮЧЕНИЕ
+    // CONCLUSION
     // ========================================================================
     std::cout << "╔═══════════════════════════════════════════════════╗" << std::endl;
-    std::cout << "║  ЗАКЛЮЧЕНИЕ                                       ║" << std::endl;
+    std::cout << "║  CONCLUSION                                       ║" << std::endl;
     std::cout << "╠═══════════════════════════════════════════════════╣" << std::endl;
-    std::cout << "║  Инструкция _mm_div_pd обрабатывает одновременно  ║" << std::endl;
-    std::cout << "║  2 значения типа double, что обеспечивает         ║" << std::endl;
-    std::cout << "║  значительное ускорение при вычислительно-        ║" << std::endl;
-    std::cout << "║  интенсивных операциях.                           ║" << std::endl;
+    std::cout << "║  The _mm_div_pd instruction processes 2 double    ║" << std::endl;
+    std::cout << "║  values simultaneously, providing significant     ║" << std::endl;
+    std::cout << "║  speedup for computationally intensive           ║" << std::endl;
+    std::cout << "║  operations.                                      ║" << std::endl;
     std::cout << "║                                                   ║" << std::endl;
-    std::cout << "║  Увеличение вычислительной нагрузки позволило     ║" << std::endl;
-    std::cout << "║  продемонстрировать реальное преимущество SIMD    ║" << std::endl;
-    std::cout << "║  над скалярными вычислениями.                     ║" << std::endl;
+    std::cout << "║  Increasing computational workload allowed us     ║" << std::endl;
+    std::cout << "║  to demonstrate the real advantage of SIMD        ║" << std::endl;
+    std::cout << "║  over scalar computations.                        ║" << std::endl;
     std::cout << "║                                                   ║" << std::endl;
-    std::cout << "║  Для компиляции используйте:                      ║" << std::endl;
+    std::cout << "║  To compile use:                                  ║" << std::endl;
     std::cout << "║  make run_no_vec                                  ║" << std::endl;
     std::cout << "╚═══════════════════════════════════════════════════╝" << std::endl;
 

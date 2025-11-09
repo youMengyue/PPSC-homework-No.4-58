@@ -1,40 +1,40 @@
 # Makefile
 
-# Компилятор
+# Compiler
 CXX = g++
 
-# --- Стандартные флаги с оптимизацией и автовекторизацией ---
+# --- Standard flags with optimization and auto-vectorization ---
 CXXFLAGS_VEC = -std=c++17 -O3 -Wall -msse2
 
-# --- Флаги с оптимизацией, НО с принудительно ОТКЛЮЧЕННОЙ автовекторизацией ---
+# --- Flags with optimization BUT with DISABLED auto-vectorization ---
 CXXFLAGS_NO_VEC = -std=c++17 -O3 -Wall -msse2 -fno-tree-vectorize
 
-# Имя итогового исполняемого файла
+# Output executable name
 TARGET = homework_58
 
-# Исходные файлы
+# Source files
 SRCS = main.cpp
 
-# Цель по умолчанию (с автовекторизацией)
+# Default target (with auto-vectorization)
 all:
 	$(CXX) $(CXXFLAGS_VEC) -o $(TARGET) $(SRCS)
 
-# Запуск версии с автовекторизацией
+# Run version with auto-vectorization
 run: all
 	./$(TARGET)
 
-# --- Новые цели для эксперимента ---
+# --- New targets for experiment ---
 
-# Сборка версии без автовекторизации
+# Build version without auto-vectorization
 build_no_vec:
 	$(CXX) $(CXXFLAGS_NO_VEC) -o $(TARGET) $(SRCS)
 
-# Запуск версии без автовекторизации, чтобы увидеть РЕАЛЬНУЮ разницу
+# Run version without auto-vectorization to see REAL difference
 run_no_vec: build_no_vec
 	@echo ""
-	@echo "--- Запуск версии с ОТКЛЮЧЕННОЙ автовекторизацией ---"
+	@echo "--- Running version with DISABLED auto-vectorization ---"
 	./$(TARGET)
 
-# Цель для очистки
+# Clean target
 clean:
 	rm -f $(TARGET)
